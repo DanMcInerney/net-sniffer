@@ -1,0 +1,1 @@
+Simple "recipe" script for sniffing on an interface/pcap file and concatenating fragmented packet loads. Prints a 1 line packet summary if the packet has a TCP layer and a load. Also has auto interface finding.
