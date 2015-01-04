@@ -108,7 +108,7 @@ def main(args):
         except Exception:
             exit('[-] Could not open %s' % pcap_file)
         for pkt in pcap:
-            parser.pkt_parser(pkt)
+            pkt_parser(pkt)
     else:
         sniff(iface=conf.iface, prn=pkt_parser, store=0)
 
