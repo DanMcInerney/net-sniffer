@@ -11,10 +11,11 @@ import signal
 from base64 import b64decode
 from urllib import unquote
 from subprocess import Popen, PIPE
+from collections import OrderedDict
 from IPython import embed
 
 DN = open(devnull, 'w')
-pkt_frag_loads = {}
+pkt_frag_loads = OrderedDict()
 
 def parse_args():
    """Create the arguments"""
@@ -34,38 +35,55 @@ def iface_finder():
     except Exception:
         exit('[-] Could not find an internet active interface; please specify one with -i <interface>')
 
-def frag_remover(ack, src_ip_port, load):
+def frag_remover(ack, load):
     '''
-    Remove concatenated fragmented packet loads every 3 minutes
+    Keep the OrderedDict of frag loads from getting too large
+    3 points of limit: number of IP:port keys, number of different acks, and len of ack
+    Number of ip_ports < 50 
+    Number of acks per ip:port < 25
+    Number of chars in load < 75,000
     '''
     global pkt_frag_loads
 
-    for dict_ip_port in pkt_frag_loads:
-        # Remove old fragmented loads
-        if len(pkt_frag_loads[dict_ip_port]) > 0:
-            for ack in pkt_frag_loads[dict_ip_port]:
-                frag_time = pkt_frag_loads[dict_ip_port][ack][1]
-                # if the frag load is from longer than 3m ago remove it
-                if time.time() - frag_time > 180:
-                    pkt_frag_loads[dict_ip_port].pop(ack)
+    # Keep the number of IP:port mappings below 50
+    # last=False pops the oldest item rather than the latest
+    while len(pkt_frag_loads) > 50:
+        pkt_frag_loads.popitem(last=False)
+
+    # Loop through a deep copy dict but modify the original dict
+    copy_pkt_frag_loads = copy.deepcopy(pkt_frag_loads)
+    for ip_port in copy_pkt_frag_loads:
+        if len(copy_pkt_frag_loads[ip_port]) > 0:
+            # Keep 25 ack:load's per ip:port
+            while len(copy_pkt_frag_loads[ip_port]) > 25:
+                pkt_frag_loads[ip_port].popitem(last=False)
+
+    # Recopy the new dict to prevent KeyErrors for modifying dict in loop
+    copy_pkt_frag_loads = copy.deepcopy(pkt_frag_loads)
+    for ip_port in copy_pkt_frag_loads:
+        # Keep the load less than 75,000 chars
+        for ack in copy_pkt_frag_loads[ip_port]:
+            if len(ack) > 75000:
+                # If load > 75,000 chars, just keep the last 200 chars
+                print '                 TRIMMING'
+                pkt_frag_loads[ip_port][ack] = pkt_frag_loads[ip_port][ack][-200:]
+                print pkt_frag_loads[ip_port][ack]
+
 
 def frag_joiner(ack, src_ip_port, load):
     '''
-    Keep a store of previous fragments in pkt_frag_loads
-    also store the time of the last incoming frag
-    so we can remove old loads
+    Keep a store of previous fragments in an OrderedDict named pkt_frag_loads
     '''
-    for dict_ip_port in pkt_frag_loads:
-        if src_ip_port == dict_ip_port:
+    for ip_port in pkt_frag_loads:
+        if src_ip_port == ip_port:
             if ack in pkt_frag_loads[src_ip_port]:
-                # Make pkt_frag_loads[src_ip_port][ack] = (full load, time)
-                old_load = pkt_frag_loads[src_ip_port][ack][0]
+                # Make pkt_frag_loads[src_ip_port][ack] = full load
+                old_load = pkt_frag_loads[src_ip_port][ack]
                 concat_load = old_load + load
                 print 'info: ', ack, repr(load[-50:])
-                #if not len(concat_load) > 100000:
-                return {ack:(old_load+load, time.time())}
+                return OrderedDict([(ack, concat_load)])
 
-    return {ack:(load, time.time())}
+    return OrderedDict([(ack, load)])
 
 def pkt_parser(pkt):
     '''
@@ -83,13 +101,20 @@ def pkt_parser(pkt):
         ack = str(pkt[TCP].ack)
         src_ip_port = str(pkt[IP].src) + ':' + str(pkt[TCP].sport)
         load = pkt[Raw].load
-        frag_remover(ack, src_ip_port, load)
+        frag_remover(ack, load)
         pkt_frag_loads[src_ip_port] = frag_joiner(ack, src_ip_port, load)
         full_load = pkt_frag_loads[src_ip_port][ack]
-
         print ''
 
 def main(args):
+
+
+    ########### DEBUG ###############
+    def signal_handler(signal, frame):
+        embed()
+        sniff(iface=conf.iface, prn=pkt_parser, store=0)
+    #################################
+    signal.signal(signal.SIGINT, signal_handler)
 
     # Check for root
     if geteuid():
