@@ -2,10 +2,15 @@ Simple building block script for inspecting packets flying across an interface/p
 
 
 Auto-detect the interface to sniff
+
 ```sudo python net-sniffer.py```
 
+
 Choose eth0 as the interface
+
 ```sudo python net-sniffer.py -i eth0```
 
+
 Read from pcap
+
 ```sudo python net-sniffer.py -p pcapfile```

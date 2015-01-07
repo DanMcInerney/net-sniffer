@@ -39,7 +39,7 @@ def frag_remover(ack, load):
     '''
     Keep the OrderedDict of frag loads from getting too large
     3 points of limit: number of IP:port keys, number of different acks, and len of ack
-    Number of ip_ports < 50 
+    Number of ip_ports < 50
     Number of acks per ip:port < 25
     Number of chars in load < 75,000
     '''
