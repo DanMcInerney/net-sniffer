@@ -65,9 +65,7 @@ def frag_remover(ack, load):
         for ack in copy_pkt_frag_loads[ip_port]:
             if len(ack) > 75000:
                 # If load > 75,000 chars, just keep the last 200 chars
-                print '                 TRIMMING'
                 pkt_frag_loads[ip_port][ack] = pkt_frag_loads[ip_port][ack][-200:]
-                print pkt_frag_loads[ip_port][ack]
 
 
 def frag_joiner(ack, src_ip_port, load):
@@ -104,17 +102,24 @@ def pkt_parser(pkt):
         frag_remover(ack, load)
         pkt_frag_loads[src_ip_port] = frag_joiner(ack, src_ip_port, load)
         full_load = pkt_frag_loads[src_ip_port][ack]
-        print ''
+        # doing str(load) throws nonASCII character output
+        # [1:-1] just gets eliminates the single quotes at start and end
+        str_repr = repr(load)[1:-1]
+
+        ###########################################
+        # DO PACKET INSPECTION HERE USING str_repr
+        ###########################################
 
 def main(args):
 
-
-    ########### DEBUG ###############
-    def signal_handler(signal, frame):
-        embed()
-        sniff(iface=conf.iface, prn=pkt_parser, store=0)
-    #################################
-    signal.signal(signal.SIGINT, signal_handler)
+    ############################### DEBUG ###############
+    # Hit Ctrl-C while program is running and you can see
+    # whatever variable you want within the IPython cli
+    #def signal_handler(signal, frame):
+    #    embed()
+    #    sniff(iface=conf.iface, prn=pkt_parser, store=0)
+    #signal.signal(signal.SIGINT, signal_handler)
+    #####################################################
 
     # Check for root
     if geteuid():
