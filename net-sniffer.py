@@ -78,7 +78,6 @@ def frag_joiner(ack, src_ip_port, load):
                 # Make pkt_frag_loads[src_ip_port][ack] = full load
                 old_load = pkt_frag_loads[src_ip_port][ack]
                 concat_load = old_load + load
-                print 'info: ', ack, repr(load[-50:])
                 return OrderedDict([(ack, concat_load)])
 
     return OrderedDict([(ack, load)])
