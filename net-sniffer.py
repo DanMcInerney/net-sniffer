@@ -41,7 +41,7 @@ def frag_remover(ack, load):
     3 points of limit: number of IP:port keys, number of different acks, and len of ack
     Number of ip_ports < 50
     Number of acks per ip:port < 25
-    Number of chars in load < 75,000
+    Number of chars in load < 5,000
     '''
     global pkt_frag_loads
 
@@ -63,10 +63,9 @@ def frag_remover(ack, load):
     for ip_port in copy_pkt_frag_loads:
         # Keep the load less than 75,000 chars
         for ack in copy_pkt_frag_loads[ip_port]:
-            if len(ack) > 75000:
-                # If load > 75,000 chars, just keep the last 200 chars
+            if len(copy_pkt_frag_loads[ip_port][ack]) > 5000:
+                # If load > 5,000 chars, just keep the last 200 chars
                 pkt_frag_loads[ip_port][ack] = pkt_frag_loads[ip_port][ack][-200:]
-
 
 def frag_joiner(ack, src_ip_port, load):
     '''
@@ -103,11 +102,12 @@ def pkt_parser(pkt):
         full_load = pkt_frag_loads[src_ip_port][ack]
         # doing str(load) throws nonASCII character output
         # [1:-1] just gets eliminates the single quotes at start and end
-        str_repr = repr(load)[1:-1]
+        str_load = repr(load)[1:-1]
 
         ###########################################
-        # DO PACKET INSPECTION HERE USING str_repr
+        # DO PACKET INSPECTION HERE USING str_load
         ###########################################
+
 
 def main(args):
 
