@@ -100,12 +100,9 @@ def pkt_parser(pkt):
         frag_remover(ack, load)
         pkt_frag_loads[src_ip_port] = frag_joiner(ack, src_ip_port, load)
         full_load = pkt_frag_loads[src_ip_port][ack]
-        # doing str(load) throws nonASCII character output
-        # [1:-1] just gets eliminates the single quotes at start and end
-        str_load = repr(load)[1:-1]
 
         ###########################################
-        # DO PACKET INSPECTION HERE USING str_load
+        # DO PACKET INSPECTION HERE USING full_load
         ###########################################
 
 
